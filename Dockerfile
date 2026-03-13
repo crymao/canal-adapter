@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM canal/osbase:v3-arm64
 WORKDIR /home/admin
 COPY ./bin ./bin
 COPY ./conf ./conf
