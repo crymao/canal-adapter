@@ -1,0 +1,44 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches: [main]
+    tags: [v*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  prod-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: [amd64]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        timeout-minutes: 10
+      - name: Clean Code
+        run: git clean -fd
+      - name: Compile And Package Jars And Build Docker Image
+        run: docker build -t canal-adapter:latest . --network=host
+        timeout-minutes: 60
+      - name: Login To Huawei Cloud Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: swr.cn-southwest-2.myhuaweicloud.com
+          username: ${{ secrets.DOCKER_USER_NEW }}
+          password: ${{ secrets.DOCKER_PASSWD_NEW }}
+      - name: Determine Tag Name
+        id: determine_tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"  # 从 GITHUB_REF 中获取标签名
+          else
+            TAG_NAME="prod-$(git rev-parse --short HEAD)"  # 如果不是标签，则使用 Git 哈希值
+          fi
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV  # 设置环境变量
+      - name: Tag Docker Image
+        run: docker tag canal-adapter:latest swr.cn-southwest-2.myhuaweicloud.com/juji-develop/canal-adapter:${{ env.TAG_NAME }}
+      - name: Push Docker Image to Huawei Cloud
+        run: docker push swr.cn-southwest-2.myhuaweicloud.com/juji-develop/canal-adapter:${{ env.TAG_NAME }}
