@@ -1,4 +1,4 @@
-FROM eclipse-temurin:8-jre
+FROM eclipse-temurin:8-jre-alpine
 WORKDIR /home/admin
 COPY ./bin ./bin
 COPY ./conf ./conf
