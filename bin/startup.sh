@@ -13,9 +13,15 @@ base=${bin_abs_path}/..
 export LANG=en_US.UTF-8
 export BASE=$base
 
-if [ -f $base/bin/adapter.pid ] ; then
-	echo "found adapter.pid , Please run stop.sh first ,then startup.sh" 2>&2
+pidfile="$base/bin/adapter.pid"
+if [ -f "$pidfile" ] ; then
+  oldpid="$(cat "$pidfile" 2>/dev/null)"
+  if [ -n "$oldpid" ] && kill -0 "$oldpid" >/dev/null 2>&1; then
+    echo "found adapter.pid , Please run stop.sh first ,then startup.sh" 2>&2
     exit 1
+  fi
+  # stale pid file (container crash / unclean shutdown)
+  rm -f "$pidfile" >/dev/null 2>&1 || true
 fi
 
 if [ ! -d $base/logs ] ; then
@@ -58,9 +64,12 @@ esac
 
 JavaVersion=`$JAVA -version 2>&1 |awk 'NR==1{ gsub(/"/,""); print $3 }' | awk  -F '.' '{print $1}'`
 str=`file -L $JAVA | grep 64-bit`
+if ! [[ "$JavaVersion" =~ ^[0-9]+$ ]]; then
+  JavaVersion=8
+fi
 
 JAVA_OPTS="$JAVA_OPTS -Xss1m -XX:+AggressiveOpts -XX:-UseBiasedLocking -XX:-OmitStackTraceInFastThrow -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$base/logs"
-if [ $JavaVersion -ge 11 ] ; then
+if [ "$JavaVersion" -ge 11 ] ; then
   #JAVA_OPTS="$JAVA_OPTS -Xlog:gc*:$base_log/gc.log:time "
   JAVA_OPTS="$JAVA_OPTS"
 else
@@ -69,7 +78,7 @@ else
 fi
 
 if [ -n "$str" ]; then
-  if [ $JavaVersion -ge 11 ] ; then
+  if [ "$JavaVersion" -ge 11 ] ; then
     # For G1
     JAVA_OPTS="-server -Xms2g -Xmx3g -XX:+UseG1GC -XX:MaxGCPauseMillis=250 -XX:+UseGCOverheadLimit -XX:+ExplicitGCInvokesConcurrent $JAVA_OPTS"
   else
@@ -93,7 +102,7 @@ cd $bin_abs_path
 
 echo CLASSPATH :$CLASSPATH
 $JAVA $JAVA_OPTS $JAVA_DEBUG_OPT $ADAPTER_OPTS -classpath .:$CLASSPATH com.alibaba.otter.canal.adapter.launcher.CanalAdapterApplication 1>>/dev/null 2>&1 &
-echo $! > $base/bin/adapter.pid
+echo $! > "$pidfile"
 
 echo "cd to $current_path for continue"
 cd $current_path
