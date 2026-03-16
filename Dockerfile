@@ -1,4 +1,4 @@
-FROM canal/osbase:v3-arm64
+FROM eclipse-temurin:8-jre
 WORKDIR /home/admin
 COPY ./bin ./bin
 COPY ./conf ./conf
