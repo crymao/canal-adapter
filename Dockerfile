@@ -5,4 +5,5 @@ COPY ./conf ./conf
 COPY ./plugin ./plugin
 COPY ./lib ./lib
 COPY ./logs ./logs
-ENTRYPOINT ["sh", "bin/startup.sh"]
+ENTRYPOINT ["sh", "-c", "rm -f /home/admin/adapter.pid && sh bin/startup.sh"]
+
