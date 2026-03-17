@@ -18,6 +18,7 @@ ENTRYPOINT ["sh", "-c", "\
     mkdir -p /home/admin/conf && cp -a /home/admin/conf-origin/. /home/admin/conf/; \
   fi; \
   rm -f /home/admin/bin/adapter.pid; \
-  exec sh bin/startup.sh \
+  exec sh \
 "]
+
 
