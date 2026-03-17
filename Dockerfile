@@ -7,7 +7,6 @@ WORKDIR /home/admin
 
 # 镜像中保留一份“原始配置”，避免被 volume 覆盖后丢失
 COPY ./conf ./conf-origin
-
 COPY ./bin ./bin
 COPY ./plugin ./plugin
 COPY ./lib ./lib

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 current_path=`pwd`
 case "`uname`" in
@@ -13,18 +13,9 @@ base=${bin_abs_path}/..
 export LANG=en_US.UTF-8
 export BASE=$base
 
-pidfile="$base/bin/adapter.pid"
-if [ -f "$pidfile" ] ; then
-  oldpid="$(cat "$pidfile" 2>/dev/null)"
-  if [ -n "$oldpid" ] && kill -0 "$oldpid" >/dev/null 2>&1; then
-    # PID 可能被复用：只有当命令行确实是 canal-adapter 才阻止启动
-    if ps -p "$oldpid" -o args= 2>/dev/null | grep -q "appName=canal-adapter" ; then
-      echo "found adapter.pid , Please run stop.sh first ,then startup.sh" 2>&2
-      exit 1
-    fi
-  fi
-  # stale pid file (container crash / unclean shutdown / pid reused)
-  rm -f "$pidfile" >/dev/null 2>&1 || true
+if [ -f $base/bin/adapter.pid ] ; then
+	echo "found adapter.pid , Please run stop.sh first ,then startup.sh" 2>&2
+    exit 1
 fi
 
 if [ ! -d $base/logs ] ; then
@@ -67,14 +58,9 @@ esac
 
 JavaVersion=`$JAVA -version 2>&1 |awk 'NR==1{ gsub(/"/,""); print $3 }' | awk  -F '.' '{print $1}'`
 str=`file -L $JAVA | grep 64-bit`
-case "$JavaVersion" in
-  ''|*[!0-9]*)
-    JavaVersion=8
-    ;;
-esac
 
 JAVA_OPTS="$JAVA_OPTS -Xss1m -XX:+AggressiveOpts -XX:-UseBiasedLocking -XX:-OmitStackTraceInFastThrow -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$base/logs"
-if [ "$JavaVersion" -ge 11 ] ; then
+if [ $JavaVersion -ge 11 ] ; then
   #JAVA_OPTS="$JAVA_OPTS -Xlog:gc*:$base_log/gc.log:time "
   JAVA_OPTS="$JAVA_OPTS"
 else
@@ -83,7 +69,7 @@ else
 fi
 
 if [ -n "$str" ]; then
-  if [ "$JavaVersion" -ge 11 ] ; then
+  if [ $JavaVersion -ge 11 ] ; then
     # For G1
     JAVA_OPTS="-server -Xms2g -Xmx3g -XX:+UseG1GC -XX:MaxGCPauseMillis=250 -XX:+UseGCOverheadLimit -XX:+ExplicitGCInvokesConcurrent $JAVA_OPTS"
   else
@@ -106,5 +92,8 @@ echo "cd to $bin_abs_path for workaround relative path"
 cd $bin_abs_path
 
 echo CLASSPATH :$CLASSPATH
-# 在容器中让 Java 进程以前台方式运行（作为 PID 1），不要放后台
-exec $JAVA $JAVA_OPTS $JAVA_DEBUG_OPT $ADAPTER_OPTS -classpath .:$CLASSPATH com.alibaba.otter.canal.adapter.launcher.CanalAdapterApplication
+$JAVA $JAVA_OPTS $JAVA_DEBUG_OPT $ADAPTER_OPTS -classpath .:$CLASSPATH com.alibaba.otter.canal.adapter.launcher.CanalAdapterApplication 1>>/dev/null 2>&1 &
+echo $! > $base/bin/adapter.pid
+
+echo "cd to $current_path for continue"
+cd $current_path
