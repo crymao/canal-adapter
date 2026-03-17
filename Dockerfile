@@ -15,8 +15,9 @@ COPY ./logs ./logs
 # 启动前：如果 /home/admin/conf 不存在或为空，则把 conf-origin 拷贝过去，然后启动
 ENTRYPOINT ["sh", "-c", "\
   if [ ! -d /home/admin/conf ] || [ -z \"$(ls -A /home/admin/conf 2>/dev/null)\" ]; then \
-    mkdir -p /home/admin/conf && cp -a /home/admin/conf-origin/* /home/admin/conf/; \
+    mkdir -p /home/admin/conf && cp -a /home/admin/conf-origin/. /home/admin/conf/; \
   fi; \
   rm -f /home/admin/bin/adapter.pid; \
-  sh bin/startup.sh \
+  exec sh bin/startup.sh \
 "]
+
