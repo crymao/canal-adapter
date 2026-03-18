@@ -1,7 +1,7 @@
-dataSourceKey: defaultDS
+dataSourceKey: mysql-edge
 destination: example
 groupId: g1
-outerAdapterKey: mysql1
+outerAdapterKey: mysql-edge
 concurrent: true
 dbMapping:
   database: mytest
